@@ -32,4 +32,4 @@ EXPOSE 3838
 
 COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
-CMD ["R", "-e shiny::runApp('/root/visualizer')"]
+CMD ["R", "-e rmarkdown::run('/root/visualizer/dashboard.Rmd')"]

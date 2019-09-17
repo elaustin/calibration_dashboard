@@ -2,15 +2,17 @@
 title: "Calibration Dashboard - San Ysidro AB617"
 output: 
   flexdashboard::flex_dashboard:
+    navbar:
+      - { icon: "fa-question-circle", href: "https://deohs.washington.edu/san-ysidro-air-quality-and-border-traffic-study", align: right }
     orientation: columns
     vertical_layout: fill
     runtime: shiny
+    theme: readable
+    
 ---
 
 ```{r setup, include=FALSE}
 
-library(pacman)
-library(datasets)
 library(ggplot2)
 library(data.table)
 library(shiny)
@@ -71,43 +73,6 @@ actionButton("calibrate", "Calibrate")
  
 
 ```
-
-
-Introduction
-===================================== 
-<h4><font face="verdana" size="4" color="blue">About this Dashboard</font><h4>
-
-<p>Welcome to the low-cost sensor calibration dashboard. This page will assist you in calibrating your low-cost sensor data to a reference or regulatory instrument. <p>
-
-<h4><font face="verdana" size="4" color="blue">Before you begin</font><h4>
-
-<p>To use this page you will need to have 2 datasets ready to access on your computer.<p>
-
-1. The first dataset _Sensor Data_ will include the following columns:
-
-- **timestamp**: A column containing the date and time (see _Note about dates_ for more details)
-- **sensor**: A column containing the sensor measurements
-- **RH**: A column with "Relative Humidity" (RH) measures (optional)
-- **ID**: A column with individual sensor ID values (optional). This allows for the calibration of multiple sensors simultaneously. 
-
-
-2. The second dataset <em>Reference Data<em> will include the following columns:
-
-- **timestamp**: A column containing the date and time (see _Note about dates_ for more details)
-- **reference**: A column with the reference instrument measurement.
-
-<h4><font face="verdana" size="4" color="blue">Calibrating deployment measurements (optional)</font><h4>
-
-<p>If you retain your _Sensor Data_ and _Reference Data_ files, you can use this page to calibrate your collected sensor data after deployment. To do so, enter _Prediction Data_ file. The column names in this dataset must exactly match those used in the _Sensor Data_ file. The results can be downloaded using the **Get Calibrated Data** tab.  <p>
-
-<h4><font face="verdana" size="4" color="blue">Note about dates</font><h4>
-
-<p>The **timestamp** column in both the "Sensor Data" file and the "Reference Data" file must have exactly the same name (case-sensitive). Both datasets must be reported in the same timezone. The format of the timestamp can be any of the following: <p>
-
-- YYYY-mm-dd HH:MM:SS (ex. 2019-01-15 22:00:00)
-- mm/dd/YYYY HH:MM (ex. 01/15/2019 22:00)
-- mm/dd/YYYY HH:MM:SS (ex. 01/15/2019 22:00:00)
-
 
 
 Regression
@@ -370,3 +335,36 @@ DT::renderDataTable(
      ) # end of datatables
    )
 ```
+
+Introduction
+===================================== 
+<h4><font color="blue">About this Dashboard</font><h4>
+
+Welcome to the low-cost sensor calibration dashboard. This page will assist you in calibrating your low-cost sensor data to a reference or regulatory instrument. 
+
+<h4><font  color="blue">Before you begin</font><h4>
+
+To use this page you will need to have 2 datasets ready to access on your computer.
+
+1. The first dataset _Sensor Data_ will include the following columns:
+
+- **timestamp**: A column containing the date and time (see _Note about dates_ for more details)
+- **sensor**: A column containing the sensor measurements
+- **RH**: A column with "Relative Humidity" (RH) measures (optional)
+- **ID**: A column with individual sensor ID values (optional). This allows for the calibration of multiple sensors simultaneously. 
+
+
+2. The second dataset <em>Reference Data<em> will include the following columns:
+
+- **timestamp**: A column containing the date and time (see _Note about dates_ for more details)
+- **reference**: A column with the reference instrument measurement.
+
+<h4><font color="blue">Calibrating deployment measurements (optional)</font><h4>
+
+If you retain your _Sensor Data_ and _Reference Data_ files, you can use this page to calibrate your collected sensor data after deployment. To do so, enter _Prediction Data_ file. The column names in this dataset must exactly match those used in the _Sensor Data_ file. The results can be downloaded using the **Get Calibrated Data** tab.  
+
+The **timestamp** column in both the "Sensor Data" file and the "Reference Data" file must have exactly the same name (case-sensitive). Both datasets must be reported in the same timezone. The format of the timestamp can be any of the following: 
+
+- YYYY-mm-dd HH:MM:SS (ex. 2019-01-15 22:00:00)
+- mm/dd/YYYY HH:MM (ex. 01/15/2019 22:00)
+- mm/dd/YYYY HH:MM:SS (ex. 01/15/2019 22:00:00)

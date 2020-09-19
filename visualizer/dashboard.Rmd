@@ -1,10 +1,19 @@
 ---
 title: "Calibration Dashboard - San Ysidro AB617"
+author:
+  - name: Elena Austin
+    email: elaustin@uw.edu
+    affiliation: University of Washington
+    footnote: Corresponding Author
+  - name: Edmund Seto
+    email: eseto@uw.edu
+    affiliation: University of Washington
 output: 
   flexdashboard::flex_dashboard:
     navbar:
       - { icon: "fa-question-circle", href: "https://deohs.washington.edu/san-ysidro-air-quality-and-border-traffic-study", align: right }
     orientation: columns
+    source_code: "https://github.com/elaustin/calibration_dashboard"
     vertical_layout: fill
     runtime: shiny
     theme: readable
@@ -64,6 +73,10 @@ renderUI({selectInput("sens_var", label = "SENSOR",
 renderUI({selectInput("rh_var", label = "Control Variable (e.g. RH)",
         choices = c("No RH",
                     colnames(sensor())), selected = "No RH")})
+
+renderUI({selectInput("temp_var", label = "Second Control Variable (e.g. T)",
+        choices = c("No Temperature",
+                    colnames(sensor())), selected = "No Temperature")})
 
 renderUI({selectInput("id_var", label = "Monitor ID",
         choices = c("No Monitor ID",
@@ -159,12 +172,14 @@ dataset_pred <- eventReactive(input$calibrate, {
   
   return(sendata[refdata])
 })
-  
+
+#This section can be used to customize the dashboard code  
 calib <- eventReactive(input$calibrate 
                        & input$submit, {
   
   all = dataset()
   
+  #no explanatory variable
   if(input$rh_var %in% "No RH")
   {
     return(lm( all[[input$ref_var]]  ~ 
@@ -172,7 +187,8 @@ calib <- eventReactive(input$calibrate
        na.action = "na.exclude"))
   }
   
-  if(!(input$rh_var %in% "No RH"))
+  #adjusting for 2 explanatory variable
+  if(!(input$rh_var %in% c("No RH")) & (input$temp_var %in% c("No Temperature")))
   {
   return(lm( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
@@ -181,6 +197,17 @@ calib <- eventReactive(input$calibrate
        na.action = "na.exclude"))
   }
   
+  #adjusting for 2 explanatory variable
+  if(!(input$rh_var %in% c("No RH")) & !(input$temp_var %in% c("No Temperature")))
+  {
+  return(lm( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]] + 
+       all[[input$rh_var]] + all[[input$temp_var]] + I(all[[input$temp_var]]^2) +
+         I(all[[input$rh_var]]^2), 
+       na.action = "na.exclude"))
+  }
+  
+  #regression by monitor
   if(!(input$id_var %in% "No Monitor ID"))
   {
   return(lmer( all[[input$ref_var]]  ~ 
@@ -193,6 +220,8 @@ calib <- eventReactive(input$calibrate
     }
   
 })
+
+
 
 plotData <- eventReactive(input$calibrate, {
   plotdata = dataset()
@@ -225,11 +254,17 @@ dtData <- eventReactive(input$calibrate, {
 covariate.values <- eventReactive(input$calibrate, {
  if(input$rh_var %in% "No RH"){
                           return(c("SENSOR"))
- }  else 
+ }  else if(input$temp_var %in% "No Temperature")  
    {
      vals = c("SENSOR", "RH", "RH Squared")
      return(vals)
-   }
+   } else
+  {
+     vals = c("SENSOR", "RH", "RH Squared", "T", "T squared")
+     return(vals)
+   } 
+     
+     
 }
 )
 

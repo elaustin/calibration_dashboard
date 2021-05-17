@@ -1,13 +1,14 @@
 ---
 title: "Calibration Dashboard - San Ysidro AB617"
+runtime: shiny
 author:
-  - name: Elena Austin
-    email: elaustin@uw.edu
-    affiliation: University of Washington
-    footnote: Corresponding Author
-  - name: Edmund Seto
-    email: eseto@uw.edu
-    affiliation: University of Washington
+  - name: "Elena Austin"
+    # email: elaustin@uw.edu
+    # affiliation: University of Washington
+    # footnote: Corresponding Author
+  - name: "Edmund Seto"
+    # email: eseto@uw.edu
+    # affiliation: University of Washington
 output: 
   flexdashboard::flex_dashboard:
     navbar:
@@ -15,7 +16,6 @@ output:
     orientation: columns
     source_code: "https://github.com/elaustin/calibration_dashboard"
     vertical_layout: fill
-    runtime: shiny
     theme: readable
     
 ---
@@ -61,24 +61,24 @@ fileInput("file_pred",
 
  actionButton("submit", "Submit")
  
-renderUI({selectInput("time_var", label = "Time",
-        choices = colnames(reference()))})
+renderUI({selectizeInput("time_var", label = "Time",
+        choices = colnames(reference()), selected = "datetime")})
 
-renderUI({selectInput("ref_var", label = "REFERENCE",
+renderUI({selectizeInput("ref_var", label = "REFERENCE",
         choices = colnames(reference()), selected = "PM25HR")})
 
-renderUI({selectInput("sens_var", label = "SENSOR",
+renderUI({selectizeInput("sens_var", label = "SENSOR",
         choices = colnames(sensor()), selected = "pm25mean")})
 
-renderUI({selectInput("rh_var", label = "Control Variable (e.g. RH)",
+renderUI({selectizeInput("rh_var", label = "Control Variable (e.g. RH)",
         choices = c("No RH",
                     colnames(sensor())), selected = "No RH")})
 
-renderUI({selectInput("temp_var", label = "Second Control Variable (e.g. T)",
+renderUI({selectizeInput("temp_var", label = "Second Control Variable (e.g. T)",
         choices = c("No Temperature",
                     colnames(sensor())), selected = "No Temperature")})
 
-renderUI({selectInput("id_var", label = "Monitor ID",
+renderUI({selectizeInput("id_var", label = "Monitor ID",
         choices = c("No Monitor ID",
                     colnames(sensor())), selected = "No Monitor ID")})
 
@@ -167,6 +167,7 @@ dataset_pred <- eventReactive(input$calibrate, {
                                 lapply(.SD, is.numeric)])] ]
 
 
+  sendata$calibrated.data = predict(calib(), sendata, na.action = na.exclude)
   setkey(refdata, datetime)
   setkey(sendata, hourly)
   
@@ -210,13 +211,16 @@ calib <- eventReactive(input$calibrate
   #regression by monitor
   if(!(input$id_var %in% "No Monitor ID"))
   {
+  all$randomv = all[[input$id_var]]
   return(lmer( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
        all[[input$rh_var]] + 
-         I(all[[input$rh_var]]^2), 
-       (1|all[[input$id_var]]),
-       na.action = "na.exclude",
-       class(model) <- "lmerMod"))
+         I(all[[input$rh_var]]^2) + 
+         all[[input$temp_var]] + 
+         I(all[[input$temp_var]]^2) +
+       (1|randomv),
+       data = all,
+       na.action = "na.exclude"))
     }
   
 })
@@ -346,8 +350,8 @@ Get Calibrated Data
 ```{r}
 
 
-DT::renderDataTable(
-     datatable( data = plotData()
+DT::renderDataTable(server = FALSE, {
+    datatable( data = dataset_pred()
                 , extensions = 'Buttons'
                 , options = list( 
                   dom = "Blfrtip"
@@ -367,7 +371,7 @@ DT::renderDataTable(
                    
                 ) # end of options
                
-     ) # end of datatables
+     )} # end of datatables
    )
 ```
 

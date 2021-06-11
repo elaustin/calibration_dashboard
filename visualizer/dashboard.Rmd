@@ -113,6 +113,56 @@ pred <- eventReactive(input$submit, {
   fread(input$file_pred[["datapath"]])
 })
 
+#This section can be used to customize the dashboard code  
+calib <- eventReactive(input$calibrate 
+                       & input$submit, {
+  
+  all = dataset()
+  
+  #no explanatory variable
+  if(input$rh_var %in% "No RH")
+  {
+    return(lm( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]], 
+       na.action = "na.exclude"))
+  }
+  
+  #adjusting for 2 explanatory variable
+  if(!(input$rh_var %in% c("No RH")) & (input$temp_var %in% c("No Temperature")))
+  {
+  return(lm( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]] + 
+       all[[input$rh_var]] + 
+         I(all[[input$rh_var]]^2), 
+       na.action = "na.exclude"))
+  }
+  
+  #adjusting for 2 explanatory variable
+  if(!(input$rh_var %in% c("No RH")) & !(input$temp_var %in% c("No Temperature")))
+  {
+  return(lm( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]] + 
+       all[[input$rh_var]] + I(all[[input$rh_var]]^2) + all[[input$temp_var]] + I(all[[input$temp_var]]^2), 
+       na.action = "na.exclude"))
+  }
+  
+  #regression by monitor
+  if(!(input$id_var %in% "No Monitor ID"))
+  {
+  all$randomv = all[[input$id_var]]
+  return(lmer( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]] + 
+       all[[input$rh_var]] + 
+         I(all[[input$rh_var]]^2) + 
+         all[[input$temp_var]] + 
+         I(all[[input$temp_var]]^2) +
+       (1|randomv),
+       data = all,
+       na.action = "na.exclude"))
+    }
+  
+})
+
 dataset <- eventReactive(input$calibrate, {
   refdata = reference()
   sendata = sensor()
@@ -150,80 +200,23 @@ dataset <- eventReactive(input$calibrate, {
 })
 
 dataset_pred <- eventReactive(input$calibrate, {
-  refdata = reference()
+  
+  if(!is.null(pred())){
   sendata = pred()
-  refdata[, datetime := parse_date_time(get(input$time_var), 
-                                        orders = c("YmdHMS", "YmdHM","mdYHMS"))]
-  sendata[, datetime := parse_date_time(get(input$time_var), 
-                                        orders = c("YmdHMS", "YmdHM","mdYHMS", "mdYHM"))]
-  #average 1-hour
-  sendata[, hourly := as.POSIXct(floor_date(datetime, "1 hour"))]
-  sendata = sendata[,
-                   lapply(.SD, mean, na.rm=T), 
-                   #Every hour by monitor and site name
-                   by = c("hourly"),
-                   #identify numeric columns
-                   .SDcols = colnames(sendata)[unlist(sendata[, 
-                                lapply(.SD, is.numeric)])] ]
-
-
-  sendata$calibrated.data = predict(calib(), sendata, na.action = na.exclude)
-  setkey(refdata, datetime)
-  setkey(sendata, hourly)
+  sendata$calibrated.data = predict(calib(), newdata = sendata, na.action="na.exclude")
+  #sendata[, hourly := as.POSIXct(hourly)]
+  sendata = sendata[!is.na(calibrated.data)]
   
-  return(sendata[refdata])
-})
-
-#This section can be used to customize the dashboard code  
-calib <- eventReactive(input$calibrate 
-                       & input$submit, {
-  
-  all = dataset()
-  
-  #no explanatory variable
-  if(input$rh_var %in% "No RH")
-  {
-    return(lm( all[[input$ref_var]]  ~ 
-               all[[input$sens_var]], 
-       na.action = "na.exclude"))
+  return(sendata)
   }
   
-  #adjusting for 2 explanatory variable
-  if(!(input$rh_var %in% c("No RH")) & (input$temp_var %in% c("No Temperature")))
-  {
-  return(lm( all[[input$ref_var]]  ~ 
-               all[[input$sens_var]] + 
-       all[[input$rh_var]] + 
-         I(all[[input$rh_var]]^2), 
-       na.action = "na.exclude"))
-  }
-  
-  #adjusting for 2 explanatory variable
-  if(!(input$rh_var %in% c("No RH")) & !(input$temp_var %in% c("No Temperature")))
-  {
-  return(lm( all[[input$ref_var]]  ~ 
-               all[[input$sens_var]] + 
-       all[[input$rh_var]] + all[[input$temp_var]] + I(all[[input$temp_var]]^2) +
-         I(all[[input$rh_var]]^2), 
-       na.action = "na.exclude"))
-  }
-  
-  #regression by monitor
-  if(!(input$id_var %in% "No Monitor ID"))
-  {
-  all$randomv = all[[input$id_var]]
-  return(lmer( all[[input$ref_var]]  ~ 
-               all[[input$sens_var]] + 
-       all[[input$rh_var]] + 
-         I(all[[input$rh_var]]^2) + 
-         all[[input$temp_var]] + 
-         I(all[[input$temp_var]]^2) +
-       (1|randomv),
-       data = all,
-       na.action = "na.exclude"))
-    }
-  
-})
+
+  if(is.null(sendata))
+    return(plotdata())
+}
+)
+
+
 
 
 

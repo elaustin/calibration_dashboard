@@ -124,7 +124,7 @@ calib <- eventReactive(input$calibrate
   {
     return(lm( all[[input$ref_var]]  ~ 
                all[[input$sens_var]], 
-       na.action = "na.exclude"))
+       na.action = 'na.exclude'))
   }
   
   #adjusting for 2 explanatory variable
@@ -134,7 +134,7 @@ calib <- eventReactive(input$calibrate
                all[[input$sens_var]] + 
        all[[input$rh_var]] + 
          I(all[[input$rh_var]]^2), 
-       na.action = "na.exclude"))
+       na.action = 'na.exclude'))
   }
   
   #adjusting for 2 explanatory variable
@@ -143,7 +143,7 @@ calib <- eventReactive(input$calibrate
   return(lm( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
        all[[input$rh_var]] + I(all[[input$rh_var]]^2) + all[[input$temp_var]] + I(all[[input$temp_var]]^2), 
-       na.action = "na.exclude"))
+       na.action = 'na.exclude'))
   }
   
   #regression by monitor
@@ -158,7 +158,7 @@ calib <- eventReactive(input$calibrate
          I(all[[input$temp_var]]^2) +
        (1|randomv),
        data = all,
-       na.action = "na.exclude"))
+       na.action = 'na.exclude'))
     }
   
 })
@@ -203,7 +203,9 @@ dataset_pred <- eventReactive(input$calibrate, {
   
   if(!is.null(pred())){
   sendata = pred()
-  sendata$calibrated.data = predict(calib(), newdata = sendata, na.action="na.exclude")
+  
+  sendata$calibrated.data = 
+    predict(calib(), newdata = sendata, na.action='na.pass')
   #sendata[, hourly := as.POSIXct(hourly)]
   sendata = sendata[!is.na(calibrated.data)]
   

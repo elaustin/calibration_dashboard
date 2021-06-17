@@ -33,6 +33,7 @@ library(lubridate)
 library(lme4)
 
 options(shiny.maxRequestSize = 30*1024^2)
+
 ```
 
 Inputs {.sidebar data-width=300}
@@ -97,7 +98,7 @@ Column {.tabset}
 ### Calibration Summary
 
 ```{r}
-
+options(na.action="na.exclude")
 reference <- eventReactive(input$submit, {
   req(input$file_ref)
   fread(input$file_ref[["datapath"]])
@@ -113,52 +114,55 @@ pred <- eventReactive(input$submit, {
   fread(input$file_pred[["datapath"]])
 })
 
+lmv <- list()
+
 #This section can be used to customize the dashboard code  
 calib <- eventReactive(input$calibrate 
                        & input$submit, {
   
   all = dataset()
+  #all = all[[input$ref_var >=4]]
   
   #no explanatory variable
   if(input$rh_var %in% "No RH")
   {
-    return(lm( all[[input$ref_var]]  ~ 
-               all[[input$sens_var]], 
-       na.action = 'na.exclude'))
+    lmv <<- lm( all[[input$ref_var]]  ~ 
+               all[[input$sens_var]])
+    return(lmv)
   }
   
   #adjusting for 2 explanatory variable
   if(!(input$rh_var %in% c("No RH")) & (input$temp_var %in% c("No Temperature")))
   {
-  return(lm( all[[input$ref_var]]  ~ 
+  lmv <<- lm( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
        all[[input$rh_var]] + 
-         I(all[[input$rh_var]]^2), 
-       na.action = 'na.exclude'))
+         I(all[[input$rh_var]]^2))
+  return(lmv)
   }
   
   #adjusting for 2 explanatory variable
   if(!(input$rh_var %in% c("No RH")) & !(input$temp_var %in% c("No Temperature")))
   {
-  return(lm( all[[input$ref_var]]  ~ 
+  lmv <<- lm( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
-       all[[input$rh_var]] + I(all[[input$rh_var]]^2) + all[[input$temp_var]] + I(all[[input$temp_var]]^2), 
-       na.action = 'na.exclude'))
+       all[[input$rh_var]] + I(all[[input$rh_var]]^2) + all[[input$temp_var]] + I(all[[input$temp_var]]^2))
+  return(lmv)
   }
   
   #regression by monitor
   if(!(input$id_var %in% "No Monitor ID"))
   {
   all$randomv = all[[input$id_var]]
-  return(lmer( all[[input$ref_var]]  ~ 
+  lmv <<- lmer( all[[input$ref_var]]  ~ 
                all[[input$sens_var]] + 
        all[[input$rh_var]] + 
          I(all[[input$rh_var]]^2) + 
          all[[input$temp_var]] + 
          I(all[[input$temp_var]]^2) +
        (1|randomv),
-       data = all,
-       na.action = 'na.exclude'))
+       data = all)
+  return(lmv)
     }
   
 })
@@ -201,13 +205,21 @@ dataset <- eventReactive(input$calibrate, {
 
 dataset_pred <- eventReactive(input$calibrate, {
   
-  if(!is.null(pred())){
+  if(!is.null(pred())  & length(lmv)>0){
   sendata = pred()
   
+  
   sendata$calibrated.data = 
-    predict(calib(), newdata = sendata, na.action='na.pass')
+    predict(lmv, newdata = sendata, na.action= "na.pass")
+  
+  
   #sendata[, hourly := as.POSIXct(hourly)]
   sendata = sendata[!is.na(calibrated.data)]
+  sendata = setDT(sendata)
+  setkeyv(sendata, 
+          c(input$time_var, 
+          input$ref_var, 
+          "calibrated.data"))
   
   return(sendata)
   }
